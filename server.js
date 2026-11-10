@@ -9,12 +9,14 @@ const PORT = process.env.PORT || 3000;
 const PRODUTOS_PATH = path.join(__dirname, 'data', 'produtos.json');
 const PRODUTOS_PUBLICOS_PATH = path.join(__dirname, 'data', 'produtos-publicos.json');
 const CLIENTES_PATH = path.join(__dirname, 'data', 'clientes.json');
+const RANKING_JUNHO_PATH = path.join(__dirname, 'data', 'ranking-junho-2026.json');
 const MARGEM_AVISTA_PADRAO = 60;
 const MARGEM_PARCELADO_PADRAO = 70;
 const SITE_USER = process.env.SITE_USER || '';
 const SITE_PASSWORD = process.env.SITE_PASSWORD || '';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+const COOKIE_SECURE = process.env.NODE_ENV === 'production';
 const COOKIE_NAME = 'gm_cliente';
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 const sessoesClientes = new Map();
@@ -23,7 +25,7 @@ app.use(express.json({ limit: '256kb' }));
 
 function exigirAutenticacao(req, res, next) {
     if (!SITE_USER || !SITE_PASSWORD) {
-        next();
+        res.status(503).send('Area interna indisponivel: configure SITE_USER e SITE_PASSWORD no servidor.');
         return;
     }
 
@@ -76,11 +78,13 @@ function validarSessaoAssinada(valor) {
 
 function criarCookieSessao(sessionId) {
     const maxAge = 60 * 60 * 24 * 30;
-    return `${COOKIE_NAME}=${assinarSessao(sessionId)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAge}`;
+    const secure = COOKIE_SECURE ? '; Secure' : '';
+    return `${COOKIE_NAME}=${assinarSessao(sessionId)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAge}${secure}`;
 }
 
 function limparCookieSessao() {
-    return `${COOKIE_NAME}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`;
+    const secure = COOKIE_SECURE ? '; Secure' : '';
+    return `${COOKIE_NAME}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${secure}`;
 }
 
 function obterSessaoCliente(req) {
@@ -110,7 +114,7 @@ app.get(['/interno', '/interno/'], exigirAutenticacao, (req, res) => {
 });
 
 app.use((req, res, next) => {
-    const caminhosInternos = new Set(['/interno.html', '/app.js', '/ranking-junho-2026.json']);
+    const caminhosInternos = new Set(['/interno.html', '/app.js']);
     if (caminhosInternos.has(req.path)) {
         exigirAutenticacao(req, res, next);
         return;
@@ -394,6 +398,15 @@ app.get('/api/produtos', exigirAutenticacao, (req, res) => {
     }
 });
 
+app.get('/api/ranking-junho-2026', exigirAutenticacao, (req, res) => {
+    try {
+        const dados = fs.readFileSync(RANKING_JUNHO_PATH, 'utf8');
+        res.json(JSON.parse(dados));
+    } catch (err) {
+        res.status(404).json({ error: 'Ranking interno nao encontrado.' });
+    }
+});
+
 app.post('/api/produtos/:id/publico', exigirAutenticacao, (req, res) => {
     try {
         const id = Number(req.params.id);
@@ -455,4 +468,7 @@ app.post('/api/orcamento/calcular', exigirAutenticacao, (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`Servidor rodando localmente em http://localhost:${PORT}`);
+    if (!SITE_USER || !SITE_PASSWORD) {
+        console.warn('Area interna bloqueada. Configure SITE_USER e SITE_PASSWORD para habilita-la.');
+    }
 });

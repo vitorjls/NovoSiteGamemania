@@ -5,6 +5,11 @@ let versaoCalculoOrcamento = 0;
 let modoDescontoOrcamento = 'normal';
 let margensOrcamento = { vista: 60, parcelado: 70 };
 let mostrarValoresItensOrcamento = false;
+const TAMANHO_LOTE_CATALOGO = 24;
+const estadoPaginacao = {
+    vitrine: { limite: TAMANHO_LOTE_CATALOGO },
+    hardware: { limite: TAMANHO_LOTE_CATALOGO }
+};
 
 const estadoFiltros = {
     vitrine: { categoria: 'Todos', subcategoria: 'Todos', ordenacao: 'nome-az', busca: '' },
@@ -386,7 +391,7 @@ function limparCodigoGrupo(grupo) {
 async function carregarRankingJunho() {
     const resumo = document.getElementById('ranking-junho-resumo');
     try {
-        const resposta = await fetch('ranking-junho-2026.json', { cache: 'no-store' });
+        const resposta = await fetch('/api/ranking-junho-2026', { cache: 'no-store' });
         dadosRankingJunho2026 = await resposta.json();
         renderizarRankingJunho(dadosRankingJunho2026);
     } catch (erro) {
@@ -896,7 +901,7 @@ function renderizarSubFiltrosGabinete() {
         botao.addEventListener('click', () => {
             estadoFiltros.hardware.tipo = tipo;
             renderizarSubFiltrosGabinete();
-            aplicarFiltros('hardware');
+            aplicarFiltros('hardware', true);
         });
         container.appendChild(botao);
     });
@@ -944,7 +949,7 @@ function abrirListaLivreAssistente() {
         if (campoVitrine) campoVitrine.value = estadoFiltros.vitrine.busca;
         renderizarBotoesFiltro('vitrine', categoriasVitrineFixas);
         renderizarSubFiltrosVitrine();
-        aplicarFiltros('vitrine');
+        aplicarFiltros('vitrine', true);
         document.getElementById('grid-acessorios')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         return;
     }
@@ -959,7 +964,7 @@ function abrirListaLivreAssistente() {
     if (campo) campo.value = estadoFiltros.hardware.busca;
     renderizarBotoesFiltro('hardware', categoriasHardwareFixas);
     renderizarSubFiltrosGabinete();
-    aplicarFiltros('hardware');
+    aplicarFiltros('hardware', true);
     document.getElementById('grid-hardware')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -1146,46 +1151,46 @@ function selecionarCategoria(area, categoria) {
         renderizarSubFiltrosVitrine();
     }
 
-    aplicarFiltros(area);
+    aplicarFiltros(area, true);
 }
 
 function selecionarSubcategoriaVitrine(subcategoria) {
     estadoFiltros.vitrine.subcategoria = subcategoria;
     renderizarSubFiltrosVitrine();
-    aplicarFiltros('vitrine');
+    aplicarFiltros('vitrine', true);
 }
 
 function alterarOrdenacao(area, ordenacao) {
     estadoFiltros[area].ordenacao = ordenacao;
-    aplicarFiltros(area);
+    aplicarFiltros(area, true);
 }
 
 function buscarVitrine(event) {
     if (event) event.preventDefault();
     const campo = document.getElementById('busca-vitrine');
     estadoFiltros.vitrine.busca = campo ? campo.value.trim() : '';
-    aplicarFiltros('vitrine');
+    aplicarFiltros('vitrine', true);
 }
 
 function limparBuscaVitrine() {
     const campo = document.getElementById('busca-vitrine');
     if (campo) campo.value = '';
     estadoFiltros.vitrine.busca = '';
-    aplicarFiltros('vitrine');
+    aplicarFiltros('vitrine', true);
 }
 
 function buscarHardware(event) {
     if (event) event.preventDefault();
     const campo = document.getElementById('busca-hardware');
     estadoFiltros.hardware.busca = campo ? campo.value.trim() : '';
-    aplicarFiltros('hardware');
+    aplicarFiltros('hardware', true);
 }
 
 function limparBuscaHardware() {
     const campo = document.getElementById('busca-hardware');
     if (campo) campo.value = '';
     estadoFiltros.hardware.busca = '';
-    aplicarFiltros('hardware');
+    aplicarFiltros('hardware', true);
 }
 
 function ordenarPorEstoqueECusto(produtos) {
@@ -1224,7 +1229,11 @@ function buscarProdutosPorTermos(termos, limite = 5) {
     return ordenarPorEstoqueECusto(listaCompleta.filter(produto => produtoContemTermos(produto, termos))).slice(0, limite);
 }
 
-function aplicarFiltros(area) {
+function aplicarFiltros(area, reiniciarPagina = false) {
+    if (reiniciarPagina) {
+        estadoPaginacao[area].limite = TAMANHO_LOTE_CATALOGO;
+    }
+
     if (area === 'vitrine') {
         let produtos = listaCompleta.filter(produto => !ehProdutoHardware(produto));
         if (estadoFiltros.vitrine.categoria !== 'Todos') {
@@ -1279,9 +1288,12 @@ function renderizarAcessorios(produtos) {
     grid.innerHTML = '';
     if (produtos.length === 0) {
         renderizarMensagemVazia(grid, 'Nenhum produto encontrado nesta categoria.');
+        renderizarPaginacao('vitrine', 0, 0);
         return;
     }
-    produtos.forEach(produto => grid.appendChild(criarCardProduto(produto, false)));
+    const produtosVisiveis = produtos.slice(0, estadoPaginacao.vitrine.limite);
+    produtosVisiveis.forEach(produto => grid.appendChild(criarCardProduto(produto, false)));
+    renderizarPaginacao('vitrine', produtos.length, produtosVisiveis.length);
 }
 
 function renderizarHardware(produtos) {
@@ -1290,9 +1302,32 @@ function renderizarHardware(produtos) {
     grid.innerHTML = '';
     if (produtos.length === 0) {
         renderizarMensagemVazia(grid, 'Nenhuma peca encontrada nesta categoria.');
+        renderizarPaginacao('hardware', 0, 0);
         return;
     }
-    produtos.forEach(produto => grid.appendChild(criarCardProduto(produto, true)));
+    const produtosVisiveis = produtos.slice(0, estadoPaginacao.hardware.limite);
+    produtosVisiveis.forEach(produto => grid.appendChild(criarCardProduto(produto, true)));
+    renderizarPaginacao('hardware', produtos.length, produtosVisiveis.length);
+}
+
+function renderizarPaginacao(area, total, exibidos) {
+    const container = document.getElementById(`paginacao-${area}`);
+    const contagem = document.getElementById(`contagem-${area}`);
+    if (!container || !contagem) return;
+
+    container.hidden = total === 0;
+    contagem.textContent = total === exibidos
+        ? `${total} ${total === 1 ? 'item exibido' : 'itens exibidos'}`
+        : `Exibindo ${exibidos} de ${total} itens`;
+
+    const botao = container.querySelector('button');
+    if (botao) botao.hidden = exibidos >= total;
+}
+
+function mostrarMaisProdutos(area) {
+    if (!estadoPaginacao[area]) return;
+    estadoPaginacao[area].limite += TAMANHO_LOTE_CATALOGO;
+    aplicarFiltros(area);
 }
 
 function renderizarMensagemVazia(grid, mensagem) {
@@ -1429,12 +1464,15 @@ function aplicarTotaisOrcamentoServidor(totais) {
     };
 
     const resumoQuantidadeEl = document.getElementById('resumo-quantidade');
+    const resumoQuantidadeMobileEl = document.getElementById('resumo-quantidade-mobile');
+    const textoQuantidade = totaisOrcamentoServidor.quantidadeTotal === 1
+        ? '1 item'
+        : `${totaisOrcamentoServidor.quantidadeTotal} itens`;
 
     if (resumoQuantidadeEl) {
-        resumoQuantidadeEl.textContent = totaisOrcamentoServidor.quantidadeTotal === 1
-            ? '1 item'
-            : `${totaisOrcamentoServidor.quantidadeTotal} itens`;
+        resumoQuantidadeEl.textContent = textoQuantidade;
     }
+    if (resumoQuantidadeMobileEl) resumoQuantidadeMobileEl.textContent = textoQuantidade;
     atualizarBotoesDesconto();
 }
 
@@ -1520,6 +1558,24 @@ function obterTotalSelecionadoOrcamento() {
 function alternarValoresItensOrcamento() {
     mostrarValoresItensOrcamento = !mostrarValoresItensOrcamento;
     atualizarPainelInterno();
+}
+
+function abrirOrcamentoMobile() {
+    const painel = document.getElementById('painel-orcamento');
+    const gatilho = document.getElementById('btn-orcamento-mobile');
+    document.body.classList.add('orcamento-mobile-aberto');
+    if (painel) painel.setAttribute('aria-hidden', 'false');
+    if (gatilho) gatilho.setAttribute('aria-expanded', 'true');
+    painel?.querySelector('.mobile-budget-close')?.focus();
+}
+
+function fecharOrcamentoMobile() {
+    const painel = document.getElementById('painel-orcamento');
+    const gatilho = document.getElementById('btn-orcamento-mobile');
+    const emTelaCompacta = window.matchMedia('(max-width: 1080px)').matches;
+    document.body.classList.remove('orcamento-mobile-aberto');
+    if (painel) painel.setAttribute('aria-hidden', emTelaCompacta ? 'true' : 'false');
+    if (gatilho) gatilho.setAttribute('aria-expanded', 'false');
 }
 
 function adicionarAoOrcamento(id) {
@@ -1616,6 +1672,7 @@ function atualizarPainelInterno() {
     const container = document.getElementById('itens-orcamento');
     const totalFinalEl = document.getElementById('total-final-resumo');
     const resumoQuantidadeEl = document.getElementById('resumo-quantidade');
+    const resumoQuantidadeMobileEl = document.getElementById('resumo-quantidade-mobile');
     const botaoMostrarValores = document.getElementById('btn-mostrar-valores');
     if (!container) {
         atualizarComputadorVirtual();
@@ -1663,7 +1720,9 @@ function atualizarPainelInterno() {
     });
 
     if (totalFinalEl) totalFinalEl.textContent = orcamentoAtual.length ? 'Calculando...' : formatarMoeda(0);
-    if (resumoQuantidadeEl) resumoQuantidadeEl.textContent = quantidadeTotal === 1 ? '1 item' : `${quantidadeTotal} itens`;
+    const textoQuantidade = quantidadeTotal === 1 ? '1 item' : `${quantidadeTotal} itens`;
+    if (resumoQuantidadeEl) resumoQuantidadeEl.textContent = textoQuantidade;
+    if (resumoQuantidadeMobileEl) resumoQuantidadeMobileEl.textContent = textoQuantidade;
     atualizarComputadorVirtual();
     calcularTotaisOrcamentoServidor();
 }
@@ -1749,4 +1808,17 @@ function fecharEspelhoCliente() {
 document.addEventListener('DOMContentLoaded', () => {
     carregarRankingJunho();
     carregarProdutos();
+    fecharOrcamentoMobile();
+});
+
+document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && document.body.classList.contains('orcamento-mobile-aberto')) {
+        fecharOrcamentoMobile();
+    }
+});
+
+window.addEventListener('resize', () => {
+    if (!document.body.classList.contains('orcamento-mobile-aberto') || !window.matchMedia('(max-width: 1080px)').matches) {
+        fecharOrcamentoMobile();
+    }
 });

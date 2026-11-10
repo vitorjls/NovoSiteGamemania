@@ -5,7 +5,7 @@ Site de vitrine e orcamento da Game Mania Informatica.
 ## Versoes do site
 
 - `/` abre a vitrine publica, sem login, mostrando somente os produtos marcados como publicados.
-- `/interno` abre a area interna, com produtos, rankings e orcamentos. Use `SITE_USER` e `SITE_PASSWORD` para proteger essa area.
+- `/interno` abre a area interna, com produtos, rankings e orcamentos. `SITE_USER` e `SITE_PASSWORD` sao obrigatorios para habilitar essa area.
 - A area `Cliente Game Mania`, dentro da pagina publica, usa login com Google e mostra a vitrine para clientes logados.
 
 Na area interna, cada card de produto tem o botao `Publicar` ou `Publicado`. Esse botao controla quais itens aparecem na vitrine publica.
@@ -18,6 +18,8 @@ Para rodar em outro computador, crie esse arquivo localmente usando `data/produt
 O arquivo `data/produtos-publicos.json` guarda apenas os ids dos produtos publicados na vitrine.
 
 O arquivo `data/clientes.json` fica fora do Git porque guarda cadastros, contatos e consentimentos dos clientes.
+
+Arquivos `data/ranking-*.json` tambem ficam fora do Git porque contem dados internos de venda e lucro. O ranking e entregue ao navegador somente pela API autenticada da area interna.
 
 ## Login com Google
 
@@ -46,7 +48,7 @@ $env:PORT="3000"
 npm start
 ```
 
-Sem `SITE_USER` e `SITE_PASSWORD`, o site abre sem senha.
+Sem `SITE_USER` e `SITE_PASSWORD`, a vitrine publica continua funcionando, mas a area interna e suas APIs permanecem bloqueadas.
 
 ## Link publico temporario
 

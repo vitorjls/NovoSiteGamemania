@@ -655,6 +655,52 @@ h1 {
     gap: 14px;
 }
 
+.catalog-pagination {
+    max-width: 1180px;
+    margin: -22px auto 42px;
+    padding: 0 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.catalog-pagination[hidden],
+.catalog-pagination button[hidden] {
+    display: none;
+}
+
+.catalog-pagination button {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 16px;
+    background: var(--white);
+    color: var(--black);
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.catalog-pagination button:hover {
+    border-color: var(--orange);
+    color: var(--orange-dark);
+}
+
+.catalog-pagination.dark {
+    margin-top: 16px;
+    margin-bottom: 0;
+    padding: 0;
+    color: #c9c4bd;
+}
+
+.catalog-pagination.dark button {
+    border-color: rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--white);
+}
+
 .apple-card {
     background: var(--white);
     border: 1px solid var(--line);
@@ -1246,6 +1292,10 @@ h1 {
     padding: 0;
 }
 
+.setup-pecas {
+    min-width: 0;
+}
+
 .build-tools {
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 8px;
@@ -1419,6 +1469,12 @@ h1 {
     top: 88px;
     align-self: start;
     max-height: calc(100dvh - 104px);
+}
+
+.mobile-budget-trigger,
+.mobile-budget-backdrop,
+.mobile-budget-close {
+    display: none;
 }
 
 .orcamento-dark-panel {
@@ -2018,16 +2074,102 @@ h1 {
 
     .setup-container {
         grid-template-columns: 1fr;
+        padding-bottom: 96px;
     }
 
     .setup-orcamento {
-        position: static;
+        position: fixed;
+        z-index: 2300;
+        inset: 0 0 0 auto;
+        width: min(420px, 100%);
         max-height: none;
+        transform: translateX(105%);
+        transition: transform 0.24s ease;
     }
 
     .orcamento-dark-panel {
-        max-height: none;
-        overflow: visible;
+        height: 100dvh;
+        max-height: 100dvh;
+        overflow-y: auto;
+        border-radius: 0;
+        padding-top: 54px;
+    }
+
+    .mobile-budget-trigger {
+        position: fixed;
+        z-index: 2100;
+        right: 16px;
+        bottom: 16px;
+        min-width: 210px;
+        min-height: 52px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border: 0;
+        border-radius: 8px;
+        padding: 11px 14px;
+        background: var(--orange);
+        color: var(--black);
+        box-shadow: 0 14px 34px rgba(0, 0, 0, 0.38);
+        font-weight: 950;
+        cursor: pointer;
+    }
+
+    .mobile-budget-trigger strong {
+        border-radius: 7px;
+        padding: 5px 7px;
+        background: var(--black);
+        color: var(--white);
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    .mobile-budget-backdrop {
+        position: fixed;
+        z-index: 2200;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        display: block;
+        background: rgba(0, 0, 0, 0.68);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+    }
+
+    .mobile-budget-close {
+        position: absolute;
+        top: 12px;
+        right: 14px;
+        width: 36px;
+        height: 36px;
+        display: grid;
+        place-items: center;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--white);
+        font-size: 26px;
+        cursor: pointer;
+    }
+
+    .orcamento-mobile-aberto {
+        overflow: hidden;
+    }
+
+    .orcamento-mobile-aberto .setup-orcamento {
+        transform: translateX(0);
+    }
+
+    .orcamento-mobile-aberto .mobile-budget-backdrop {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .orcamento-mobile-aberto .mobile-budget-trigger {
+        visibility: hidden;
     }
 
     .profile-grid {
@@ -2130,6 +2272,33 @@ h1 {
 
     .apple-grid {
         grid-template-columns: 1fr;
+    }
+
+    .build-tools-header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .build-tools-header .btn-secondary {
+        width: 100%;
+    }
+
+    .catalog-pagination {
+        align-items: stretch;
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .catalog-pagination button {
+        width: 100%;
+        min-height: 44px;
+    }
+
+    .mobile-budget-trigger {
+        right: 12px;
+        bottom: 12px;
+        left: 12px;
+        width: auto;
     }
 
     .search-control {
